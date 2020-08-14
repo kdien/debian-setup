@@ -30,6 +30,9 @@ tar -xzvf meslo-nf.tar.gz -C $HOME/.fonts/meslo-nf
 rm -rf $HOME/.config/fontconfig
 ln -s $HOME/dotfiles/fontconfig $HOME/.config/fontconfig
 
+# Install required tools for automation
+sudo apt install software-properties-common curl wget -y
+
 # Enable additional repos
 sudo add-apt-repository ppa:mmstick76/alacritty -y
 sudo add-apt-repository ppa:teejee2008/timeshift -y
