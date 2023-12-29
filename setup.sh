@@ -1,84 +1,180 @@
-#!/bin/bash
-mkdir -p $HOME/Downloads/temp
+#!/usr/bin/env bash
+
+# Source bash config
+cat >> "$HOME/.bashrc" <<'EOF'
+[[ -f "$HOME/dotfiles/bash/.bash_common" ]] && . "$HOME/dotfiles/bash/.bash_common"
+EOF
+
+mkdir -p "$HOME/Downloads/setup"
 version_num=$(grep VERSION_ID /etc/os-release | cut -d "=" -f 2 | sed -e s/\"//g)
 version_code=$(grep UBUNTU_CODENAME /etc/os-release | cut -d "=" -f 2)
 
-# Enable additional repos
-sudo add-apt-repository universe -y
-sudo add-apt-repository ppa:mmstick76/alacritty -y
-sudo add-apt-repository ppa:teejee2008/timeshift -y
-sudo apt update
-
-# Configure GNOME settings
-[[ "$XDG_CURRENT_DESKTOP" == *GNOME* ]] && sudo apt install gnome-tweaks gnome-extensions-app -y && ./config-gnome.sh
-
-# Install required tools for automation
-sudo apt install software-properties-common curl wget git -y
-
-# Get pureline bash prompt
-git clone https://github.com/chris-marsh/pureline.git $HOME/pureline
-
-# Setup bash symlinks
-[[ -f $HOME/.bashrc ]] && mv $HOME/.bashrc $HOME/.bashrc.bak
-ln -sf $HOME/ubuntu-setup/bash/.bashrc $HOME/.bashrc
-ln -sf $HOME/ubuntu-setup/bash/.bash_aliases $HOME/.bash_aliases
-ln -sf $HOME/ubuntu-setup/bash/.bash_functions $HOME/.bash_functions
+# Install required dependencies
+sudo apt install -y ca-certificates curl git gnupg software-properties-common
 
 # Clone dotfiles and setup symlinks
-git clone https://github.com/kdien/dotfiles.git $HOME/dotfiles
-ln -sf $HOME/dotfiles/tmux/.tmux.conf $HOME/.tmux.conf
-ln -sf $HOME/dotfiles/vim/.vimrc $HOME/.vimrc
-ln -sf $HOME/dotfiles/alacritty $HOME/.config/alacritty
-ln -sf $HOME/dotfiles/pureline/.pureline.conf $HOME/.pureline.conf
+git clone https://github.com/kdien/dotfiles.git "$HOME/dotfiles"
+configs=(
+    alacritty
+    nvim
+    powershell
+    tmux
+    wezterm
+)
+for config in "${configs[@]}"; do
+    ln -sf "$HOME/dotfiles/$config" "$HOME/.config/$config"
+done
 
-# Extract Meslo fonts
-mkdir -p $HOME/.fonts/meslo-nf
-tar -xzvf meslo-nf.tar.gz -C $HOME/.fonts/meslo-nf
+# Copy base git config
+cp "$HOME/dotfiles/git/config" "$HOME/.gitconfig"
+
+# Configure GNOME settings
+if command -v gnome-shell &>/dev/null; then
+    sudo apt install -y gnome-tweaks gnome-shell-extensions gnome-shell-extension-appindicator
+    ./config-gnome.sh
+    mkdir -p "$HOME/bin"
+    for file in "$HOME"/dotfiles/gnome/*; do
+        ln -sf "$file" "$HOME/bin/$(basename "$file")"
+    done
+fi
+
+# Install fonts
+for font in "$HOME"/dotfiles/fonts/*.tar.gz; do
+    name=$(basename "$font" | cut -d '.' -f 1)
+    tar -xf "$font"
+    sudo chown root:root ./*.ttf
+    sudo mkdir -p "/usr/share/fonts/$name"
+    sudo mv ./*.ttf "/usr/share/fonts/$name"
+done
+
+curl -sSL https://github.com/ryanoasis/nerd-fonts/releases/latest/download/NerdFontsSymbolsOnly.tar.xz -o nf-symbols.tar.xz
+tar -xf nf-symbols.tar.xz --wildcards '*.ttf'
+sudo chown root:root ./*.ttf
+sudo mkdir -p /usr/share/fonts/nf-symbols
+sudo mv ./*.ttf /usr/share/fonts/nf-symbols
+rm -f nf-symbols.tar.xz
+
+# Enable additional repos
+sudo add-apt-repository -y universe multiverse restricted
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+NODE_MAJOR=20
+sudo tee /etc/apt/sources.list.d/nodesource.list <<EOF
+deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main
+EOF
+sudo apt update
 
 # Remove bloat
-sudo apt remove $(cat ./pkg.remove) -y
+sudo apt remove -y $(cat ./pkg.remove)
+sudo snap remove firefox
 
 # Install packages from repo
-sudo apt install $(cat ./pkg.add) -y
+sudo apt install -y $(cat ./pkg.add)
 
-# Install snap packages
-cat snap.add | while read snap; do sudo snap install "$snap"; done
+# Build and install Neovim
+OGPWD=$(pwd)
+mkdir "$HOME/code"
+cd "$HOME/code" || return
+git clone https://github.com/neovim/neovim
+cd neovim || return
+git checkout stable
+make CMAKE_BUILD_TYPE=Release
+sudo make install
+cd "$OGPWD" || return
 
-# Install MS Edge
-curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
-sudo install -o root -g root -m 644 microsoft.gpg /etc/apt/trusted.gpg.d/
-echo "deb [arch=amd64] https://packages.microsoft.com/repos/edge stable main" | sudo tee /etc/apt/sources.list.d/microsoft-edge-dev.list
-sudo rm microsoft.gpg
+# Install webi packages
+webi_pkgs=(
+    bat
+    delta
+    golang
+    rg
+    shellcheck
+)
+for pkg in "${webi_pkgs[@]}"; do
+    curl -sS "https://webi.sh/$pkg" | sh
+done
+
+# Install fzf
+curl -sSLo "$HOME/Downloads/setup/fzf.tar.gz" "$(curl -sSLH 'Accept: application/vnd.github+json' https://api.github.com/repos/junegunn/fzf/releases/latest | jq -r ".assets[] | select(.browser_download_url | match(\"linux_amd64.tar.gz$\")) | .browser_download_url")"
+tar -xf "$HOME/Downloads/setup/fzf.tar.gz"
+sudo mkdir -p /usr/local/bin
+sudo install -o root -g root -m 755 fzf /usr/local/bin
+rm -f fzf
+
+# Set up interception-tools
+git clone https://gitlab.com/interception/linux/tools.git interception-tools
+cd interception-tools || return
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+sudo cp build/{intercept,mux,udevmon,uinput} /usr/local/bin
+sed -i 's|/usr/bin/udevmon|/usr/local/bin/udevmon|' udevmon.service
+sudo cp udevmon.service /usr/lib/systemd/system
+sudo systemctl daemon-reload
+cd ..
+rm -rf interception-tools
+
+# Set up caps2esc
+git clone https://gitlab.com/interception/linux/plugins/caps2esc.git
+cd caps2esc || return
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+sudo cp build/caps2esc /usr/local/bin
+cd ..
+rm -rf caps2esc
+
+sudo mkdir -p /etc/interception/udevmon.d
+sudo install -o root -g root -m 644 caps2esc.yaml /etc/interception/udevmon.d/caps2esc.yaml
+sudo systemctl enable --now udevmon
+
+# Install Firefox from Mozilla
+curl -L "https://download.mozilla.org/?product=firefox-latest-ssl&os=linux64&lang=en-CA" -o "$HOME/Downloads/firefox.tar.bz2"
+tar -xf "$HOME/Downloads/firefox.tar.bz2"
+sudo rm -rf /opt/firefox
+sudo chown -R root:root firefox
+sudo mv firefox /opt/firefox
+sudo mkdir -p /usr/local/bin
+sudo ln -s /opt/firefox/firefox /usr/local/bin/firefox
+sudo install -o root -g root -m 644 desktop-entries/firefox.desktop /usr/local/share/applications/firefox.desktop
+rm -f "$HOME/Downloads/firefox.tar.bz2"
+echo MOZ_ENABLE_WAYLAND=1 | sudo tee -a /etc/environment
+
+# Install Brave browser
+sudo curl -fsSL https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg -o /usr/share/keyrings/brave-browser-archive-keyring.gpg
+sudo tee /etc/apt/sources.list.d/brave-browser-release.list <<EOF
+deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main
+EOF
 sudo apt update
-sudo apt install microsoft-edge-dev -y
+sudo apt install -y brave-browser
 
 # Install Google Chrome
-wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -O $HOME/Downloads/temp/chrome.deb 
-sudo apt install $HOME/Downloads/temp/chrome.deb -y
+curl -sSL https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -o "$HOME/Downloads/setup/chrome.deb"
+sudo apt install -yf "$HOME/Downloads/setup/chrome.deb"
 
-# Add VS Code repo and install
-echo "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/packages.microsoft.gpg] https://packages.microsoft.com/repos/vscode stable main" | sudo tee /etc/apt/sources.list.d/vscode.list
-sudo apt update
-sudo apt install code -y
+# Install tfenv and Terraform
+git clone --depth=1 https://github.com/tfutils/tfenv.git "$HOME/.tfenv"
+"$HOME/.tfenv/bin/tfenv" install latest
+"$HOME/.tfenv/bin/tfenv" use latest
 
 # Add Insync repo and install
 sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys ACCAF35C
-echo "deb http://apt.insync.io/ubuntu $version_code non-free contrib" | sudo tee /etc/apt/sources.list.d/insync.list
+sudo tee /etc/apt/sources.list.d/insync.list <<EOF
+deb http://apt.insync.io/ubuntu $version_code non-free contrib
+EOF
 sudo apt update
-sudo apt install insync insync-nautilus -y
-
-# Add Spotify repo and install
-curl -sS https://download.spotify.com/debian/pubkey_0D811D58.gpg | sudo apt-key add - 
-echo "deb http://repository.spotify.com stable non-free" | sudo tee /etc/apt/sources.list.d/spotify.list
-
-# Install Viber
-wget -q https://download.cdn.viber.com/cdn/desktop/Linux/viber.deb -O $HOME/Downloads/temp/viber.deb 
-sudo apt install $HOME/Downloads/temp/viber.deb -y
+sudo apt install -y insync
+for filemgr in nautilus dolphin; do
+    if command -v "$filemgr" &>/dev/null; then
+        sudo apt install -y insync-"$filemgr"
+    fi
+done
 
 # Install Zoom
-wget -q https://zoom.us/client/latest/zoom_amd64.deb -O $HOME/Downloads/temp/zoom.deb
-sudo apt install $HOME/Downloads/temp/zoom.deb -y
+curl -sSL https://zoom.us/client/latest/zoom_amd64.deb -o "$HOME/Downloads/setup/zoom.deb"
+sudo apt install -yf "$HOME/Downloads/setup/zoom.deb"
+
+# Install WezTerm
+curl -sSLo "$HOME/Downloads/setup/wezterm.deb" "$(curl -sSLH 'Accept: application/vnd.github+json' https://api.github.com/repos/wez/wezterm/releases/latest | jq -r ".assets[] | select(.browser_download_url | match(\"Ubuntu$version_num.deb$\")) | .browser_download_url")"
+sudo apt install -yf "$HOME/Downloads/setup/wezterm.deb"
 
 # Clean up
-rm -rf $HOME/Downloads/temp
-
+rm -rf "$HOME/Downloads/setup"

@@ -1,0 +1,26 @@
+[Desktop Entry]
+Name=Firefox Developer Edition
+GenericName=Web Browser
+Comment=Browse the Web
+Type=Application
+Terminal=false
+Categories=Network;WebBrowser;
+Keywords=web;browser;internet;
+MimeType=text/html;text/xml;application/xhtml+xml;application/vnd.mozilla.xul+xml;text/mml;x-scheme-handler/http;x-scheme-handler/https;
+StartupNotify=true
+StartupWMClass=firefox-aurora
+Actions=new-window;new-private-window;profile-manager-window;
+Icon=/opt/firefox-dev/browser/chrome/icons/default/default128.png
+Exec=firefox-dev --class=firefox-aurora %u
+
+[Desktop Action new-window]
+Name=Open a New Window
+Exec=firefox-dev --class=firefox-aurora --new-window %u
+
+[Desktop Action new-private-window]
+Name=Open a New Private Window
+Exec=firefox-dev --class=firefox-aurora --private-window %u
+
+[Desktop Action profile-manager-window]
+Name=Open the Profile Manager
+Exec=firefox-dev --class=firefox-aurora --ProfileManager

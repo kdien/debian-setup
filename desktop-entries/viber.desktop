@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Viber
+Comment=Viber VoIP and messenger
+Exec=/opt/viber/viber.AppImage
+Icon=/opt/viber/viber.png
+Terminal=false
+Type=Application
+Categories=Network;InstantMessaging;P2P;
+MimeType=x-scheme-handler/viber;
