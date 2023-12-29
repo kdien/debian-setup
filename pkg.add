@@ -1,4 +1,3 @@
-bat
 build-essential
 cmake
 curl
@@ -20,6 +19,7 @@ nodejs
 openjdk-11-jdk
 openjdk-17-jdk
 openjdk-8-jdk
+pkg-config
 python3-pip
 remmina
 tldr
