@@ -83,23 +83,8 @@ sudo make install
 cd "$OGPWD" || return
 
 # Install webi packages
-webi_pkgs=(
-    bat
-    delta
-    golang
-    rg
-    shellcheck
-)
-for pkg in "${webi_pkgs[@]}"; do
-    curl -sS "https://webi.sh/$pkg" | sh
-done
-
-# Install fzf
-curl -sSLo "$HOME/Downloads/setup/fzf.tar.gz" "$(curl -sSLH 'Accept: application/vnd.github+json' https://api.github.com/repos/junegunn/fzf/releases/latest | jq -r ".assets[] | select(.browser_download_url | match(\"linux_amd64.tar.gz$\")) | .browser_download_url")"
-tar -xf "$HOME/Downloads/setup/fzf.tar.gz"
-sudo mkdir -p /usr/local/bin
-sudo install -o root -g root -m 755 fzf /usr/local/bin
-rm -f fzf
+curl -sS https://webi.sh/webi | sh
+webi $(cat ./webi.add)
 
 # Set up interception-tools
 git clone https://gitlab.com/interception/linux/tools.git interception-tools
