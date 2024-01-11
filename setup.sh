@@ -109,7 +109,6 @@ sudo systemctl enable --now udevmon
 curl -L "https://download.mozilla.org/?product=firefox-latest-ssl&os=linux64&lang=en-CA" -o "$HOME/Downloads/firefox.tar.bz2"
 tar -xf "$HOME/Downloads/firefox.tar.bz2"
 sudo rm -rf /opt/firefox
-sudo chown -R root:root firefox
 sudo mv firefox /opt/firefox
 sudo mkdir -p /usr/local/bin
 sudo ln -s /opt/firefox/firefox /usr/local/bin/firefox
