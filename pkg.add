@@ -11,14 +11,11 @@ libboost-dev
 libevdev-dev
 libudev-dev
 libyaml-cpp-dev
-maven
+mpv
 neofetch
 net-tools
 ninja-build
-nodejs
-openjdk-11-jdk
 openjdk-17-jdk
-openjdk-8-jdk
 pkg-config
 python3-pip
 remmina
@@ -27,5 +24,4 @@ tmux
 transmission
 unzip
 vim
-vlc
 xclip
