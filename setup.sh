@@ -2,6 +2,7 @@
 
 # Source bash config
 cat >>"$HOME/.bashrc" <<'EOF'
+[[ "$PATH" =~ $HOME/.local/bin ]] || export PATH="$HOME/.local/bin:$PATH"
 [[ -f "$HOME/dotfiles/bash/.bash_common" ]] && . "$HOME/dotfiles/bash/.bash_common"
 EOF
 
@@ -74,7 +75,7 @@ cd "$OGPWD" || return
 # Install webi packages
 curl -sS https://webi.sh/webi | sh
 # shellcheck disable=SC2046
-webi $(cat ./webi.add)
+"$HOME/.local/bin/webi" $(cat ./webi.add)
 
 # Set up interception-tools
 git clone https://gitlab.com/interception/linux/tools.git interception-tools
