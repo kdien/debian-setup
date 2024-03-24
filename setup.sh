@@ -156,12 +156,13 @@ curl -sSL https://zoom.us/client/latest/zoom_amd64.deb -o "$HOME/Downloads/setup
 sudo apt install -yf "$HOME/Downloads/setup/zoom.deb"
 
 # Install WezTerm
-curl -sSLo "$HOME/Downloads/setup/wezterm.deb" \
-  "$(
-    curl -sSLH 'Accept: application/vnd.github+json' https://api.github.com/repos/wez/wezterm/releases/latest \
-      | jq -r \
-        ".assets[] | select(.browser_download_url | match(\"${ID^}${VERSION_ID/\"//}.deb$\")) | .browser_download_url"
-  )"
+curl -sSLo "$HOME/Downloads/setup/wezterm.deb" "$(
+  curl -sSLH 'Accept: application/vnd.github+json' \
+    https://api.github.com/repos/wez/wezterm/releases/latest \
+    | jq -r \
+      ".assets[] | select(.browser_download_url | match(\"${ID^}${VERSION_ID/\"//}.deb$\")) \
+      | .browser_download_url"
+)"
 sudo apt install -yf "$HOME/Downloads/setup/wezterm.deb"
 
 # Clean up
