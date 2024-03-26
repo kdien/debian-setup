@@ -6,7 +6,7 @@ cat >>"$HOME/.bashrc" <<'EOF'
 [[ -f "$HOME/dotfiles/bash/.bash_common" ]] && . "$HOME/dotfiles/bash/.bash_common"
 EOF
 
-mkdir -p "$HOME/Downloads/setup"
+mkdir -p "$HOME/Downloads"
 . /etc/os-release
 
 # Install required dependencies
@@ -63,7 +63,7 @@ sudo apt install -y $(cat ./pkg.add)
 
 # Build and install Neovim
 OGPWD=$(pwd)
-mkdir "$HOME/code"
+mkdir -p "$HOME/code"
 cd "$HOME/code" || return
 git clone https://github.com/neovim/neovim
 cd neovim || return
@@ -124,8 +124,8 @@ sudo apt update
 sudo apt install -y brave-browser
 
 # Install Google Chrome
-curl -sSL https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -o "$HOME/Downloads/setup/chrome.deb"
-sudo apt install -yf "$HOME/Downloads/setup/chrome.deb"
+curl -sSL https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -o "$HOME/Downloads/chrome.deb"
+sudo apt install -yf "$HOME/Downloads/chrome.deb"
 
 # Install tfenv and Terraform
 git clone --depth=1 https://github.com/tfutils/tfenv.git "$HOME/.tfenv"
@@ -152,18 +152,15 @@ for filemgr in nautilus dolphin; do
 done
 
 # Install Zoom
-curl -sSL https://zoom.us/client/latest/zoom_amd64.deb -o "$HOME/Downloads/setup/zoom.deb"
-sudo apt install -yf "$HOME/Downloads/setup/zoom.deb"
+curl -sSL https://zoom.us/client/latest/zoom_amd64.deb -o "$HOME/Downloads/zoom.deb"
+sudo apt install -yf "$HOME/Downloads/zoom.deb"
 
 # Install WezTerm
-curl -sSLo "$HOME/Downloads/setup/wezterm.deb" "$(
+curl -sSLo "$HOME/Downloads/wezterm.deb" "$(
   curl -sSLH 'Accept: application/vnd.github+json' \
     https://api.github.com/repos/wez/wezterm/releases/latest \
     | jq -r \
       ".assets[] | select(.browser_download_url | match(\"${ID^}${VERSION_ID/\"//}.deb$\")) \
       | .browser_download_url"
 )"
-sudo apt install -yf "$HOME/Downloads/setup/wezterm.deb"
-
-# Clean up
-rm -rf "$HOME/Downloads/setup"
+sudo apt install -yf "$HOME/Downloads/wezterm.deb"
